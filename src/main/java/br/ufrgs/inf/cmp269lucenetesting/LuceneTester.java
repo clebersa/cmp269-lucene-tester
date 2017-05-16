@@ -1,0 +1,96 @@
+package br.ufrgs.inf.cmp269lucenetesting;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.InputMismatchException;
+import java.util.Properties;
+import java.util.Scanner;
+
+/**
+ *
+ * @author cleber
+ */
+public class LuceneTester {
+
+    public static final Charset ENCODING = Charset.forName("ISO-8859-15");
+    
+    public static Properties properties;
+    private static Indexer indexer;
+    private static Scanner scanner;
+            
+    public static void main(String args[]) {
+        int option;
+        indexer = new Indexer();
+        scanner = new Scanner(System.in);
+        Searcher searcher;
+
+        loadProperties();
+        
+        do {
+            System.out.print("\nChoose one option:\n"
+                    + "1 - Index collection\n"
+                    + "2 - Perform normal search\n"
+                    + "0 - Quit\n"
+                    + "Option: ");
+            try{
+                option = scanner.nextInt();
+            }catch(InputMismatchException exception){
+                scanner.next();
+                option = -1;
+            }
+            switch (option) {
+                case 0:
+                    break;
+                case 1:
+                    handleIndexOperation();
+                    break;
+                case 2:
+                    searcher = new Searcher(100, SearchMode.NORMAL);
+                    searcher.search();
+                    break;
+                default:
+                    System.out.println("Invalid option.");
+            }
+        } while (option != 0);
+
+    }
+
+    private static void loadProperties() {
+        properties = new Properties();
+        InputStream input = null;
+
+        try {
+            input = new FileInputStream("config.properties");
+            properties.load(input);
+        } catch (IOException ex) {
+            System.out.println("[WARN] Unable to load properties. Error: " + ex.getMessage());
+            System.exit(1);
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    System.out.println("[WARN] Unable to close input stream for properties file. Error: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private static void handleIndexOperation() {
+        if (indexer.getLastIndexDate() != null) {
+            System.out.println("The collection was indexed at "
+                    + indexer.getLastIndexDate() + ". Do you want to index again?\n"
+                    + "Yes or No?[no]");
+            String answer = scanner.next();
+            if (answer.equalsIgnoreCase("yes") || answer.equalsIgnoreCase("y")) {
+                indexer.indexCollection();
+            } else {
+                System.out.println("Operation cancelled.");
+            }
+        } else {
+            indexer.indexCollection();
+        }
+    }
+}
