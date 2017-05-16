@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.InputMismatchException;
 import java.util.Properties;
 import java.util.Scanner;
@@ -92,5 +94,22 @@ public class LuceneTester {
         } else {
             indexer.indexCollection();
         }
+    }
+    
+    /**
+     * Reads the content of a file and stores it in a string.
+     *
+     * @param path Path to the file to be read.
+     * @return The content of the file in a string. If some error occurs to open the file, null is returned
+     */
+    public static String readFile(String path) {
+        String content;
+        try{
+            content = new String(Files.readAllBytes(Paths.get(path)), LuceneTester.ENCODING);
+        } catch (IOException exception) {
+            System.out.println("[ERROR] Unable to read file " + path + ". Error: " + exception.getMessage());
+            content = null;
+        }
+        return content;
     }
 }

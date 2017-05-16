@@ -1,28 +1,17 @@
 package br.ufrgs.inf.cmp269lucenetesting;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
-import java.util.HashMap;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
@@ -30,10 +19,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  * Indexer of files. This file is strongly based on the file from the Lucene
@@ -45,7 +30,6 @@ import org.w3c.dom.NodeList;
 public class Indexer {
 
     private Date lastIndexDate;
-    
 
     public Indexer() {
         //TODO: Read from index folder and discover when the last index was performed.
@@ -72,7 +56,6 @@ public class Indexer {
             // buffer.  But if you do this, increase the max heap
             // size to the JVM (eg add -Xmx512m or -Xmx1g):
             //iwc.setRAMBufferSizeMB(256.0);
-            
             IndexWriter writer = new IndexWriter(dir, iwc);
             indexFiles(writer, Paths.get(LuceneTester.properties.getProperty("files_directory")));
 
@@ -82,7 +65,6 @@ public class Indexer {
             // worth it when your index is relatively static (ie
             // you're done adding documents to it):
             // writer.forceMerge(1);
-            
             writer.close();
 
             Date end = new Date();
@@ -132,24 +114,15 @@ public class Indexer {
     }
 
     /**
-     * Reads the content of a file and stores it in a string.
-     *
-     * @param path Path to the file to be read.
-     * @return The content of the file in a string.
-     * @throws IOException if any I/O error occurs.
-     */
-    public String readFile(String path) throws IOException {
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
-        return new String(encoded, LuceneTester.ENCODING);
-    }
-
-    /**
      * Indexes a single file
      */
     void processFile(IndexWriter writer, Path file) throws IOException {
-        System.out.println("[INFO] Processing " + file);
-        String fileContent = readFile(file.toString());
-        
+        String fileContent = LuceneTester.readFile(file.toString());
+        if (fileContent == null) {
+            System.out.println("[ERROR] Unable to process " + file.toString());
+        }
+        System.out.println("[INFO] Processing " + file.toString());
+
         String documents[] = fileContent.split("(?<=</DOC>)");
         IndexableDocument indexableDocument;
         for (String document : documents) {
@@ -191,7 +164,6 @@ public class Indexer {
         // For example the long value 2011021714 would mean
         // February 17, 2011, 2-3 PM.
         // doc.add(new LongPoint("modified", lastModified));
-        
         // Add the contents of the file to a field named "contents".  Specify a Reader,
         // so that the text of the file is tokenized and indexed, but not stored.
         // Note that FileReader expects the file to be in UTF-8 encoding.

@@ -17,5 +17,12 @@
             <artifactId>lucene-core</artifactId>
             <version>6.5.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-queryparser -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queryparser</artifactId>
+            <version>6.5.1</version>
+        </dependency>
+
     </dependencies>
 </project>
