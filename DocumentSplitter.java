@@ -21,11 +21,11 @@ public class DocumentSplitter {
 
         for (String fileName : files) {
             fullFileName = args[0] + "/" + fileName;
-            System.out.println("File " + fullFileName);
+            System.out.println("[INFO] File " + fullFileName);
             
             file = new File(fullFileName);
             if (file.isDirectory()) {
-                System.out.println("Ignoring directory " + fullFileName);
+                System.out.println("[WARN] Ignoring directory " + fullFileName);
                 continue;
             }
             
@@ -33,16 +33,17 @@ public class DocumentSplitter {
                 //System.out.println(Charset.availableCharsets().toString());
                 fileContent = readFile(fullFileName, Charset.forName("ISO-8859-15"));
             }catch(IOException exception){
-                System.out.println("Unable to read file " + fullFileName + ". Error: " + exception.getMessage());
+                System.out.println("[ERROR] Unable to read file " + fullFileName + ". Error: " + exception.getMessage());
                 continue;
             }
             
             if (fileContent == null) {
-                System.out.println("Null content for file " + fullFileName);
+                System.out.println("[ERROR] Null content for file " + fullFileName);
                 continue;
             }
             splitDocuments(fileContent, args[1]);
         }
+        System.out.println("[INFO] Sppliting finished.");
     }
 
     /**
@@ -70,14 +71,15 @@ public class DocumentSplitter {
             if (document.isEmpty()) {
                 continue;
             }
-            documentNumber = ((document.split("<DOCNO>", 2))[1].split("</DOCNO>", 2))[0];
-            System.out.println("\tDocument Number: " + documentNumber);
             try {
+                documentNumber = ((document.split("<DOCNO>", 2))[1].split("</DOCNO>", 2))[0];
+                System.out.println("[INFO]\t Document Number: " + documentNumber);
+            
                 Files.write(Paths.get(newFolder + "/" + documentNumber), 
                         document.getBytes(StandardCharsets.UTF_8), 
                         StandardOpenOption.CREATE);
-            } catch (IOException exception) {
-                System.out.println("Unable to write document " + fileContent + ". Error: " + exception.getMessage());
+            } catch (Exception exception) {
+                System.out.println("[ERROR]\t Unable to write document " + fileContent + ". Error: " + exception.getMessage());
             }
         }
     }
