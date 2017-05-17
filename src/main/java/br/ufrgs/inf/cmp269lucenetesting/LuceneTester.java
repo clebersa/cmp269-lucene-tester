@@ -9,8 +9,6 @@ import java.nio.file.Paths;
 import java.util.InputMismatchException;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -53,11 +51,7 @@ public class LuceneTester {
                     break;
                 case 2:
                     searcher = new Searcher(100, SearchMode.NORMAL);
-                    try {
-                        searcher.search();
-                    } catch (IOException ex) {
-                        Logger.getLogger(LuceneTester.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    searcher.search();
                     break;
                 default:
                     System.out.println("Invalid option.");

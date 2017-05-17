@@ -1,10 +1,11 @@
 package br.ufrgs.inf.cmp269lucenetesting;
 
-import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,12 +48,18 @@ public class Searcher {
         this.searchMode = searchMode;
     }
 
-    public void search() throws IOException {
+    public void search() {
         System.out.println("[INFO] Searching...");
 
         HashMap<Integer, Element> queries = loadQueries();
 
-        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(LuceneTester.properties.getProperty("index_directory"))));
+        IndexReader reader;
+        try {
+            reader = DirectoryReader.open(FSDirectory.open(Paths.get(LuceneTester.properties.getProperty("index_directory"))));
+        } catch (IOException exception) {
+            System.out.println("[ERROR] Unable to access index. Error: " + exception.getMessage());
+            return;
+        }
         IndexSearcher searcher = new IndexSearcher(reader);
         Analyzer analyzer = new StandardAnalyzer();
 
@@ -60,6 +67,7 @@ public class Searcher {
         StringBuilder stringBuilder = new StringBuilder();
         Query query;
         Iterator<Map.Entry<Integer, Element>> iterator = queries.entrySet().iterator();
+        int queryCounter = 0;
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry) iterator.next();
 
@@ -71,21 +79,64 @@ public class Searcher {
             try {
                 query = parser.parse(parser.escape(stringBuilder.toString()));
             } catch (ParseException exception) {
-                System.out.println("[ERROR] Unable to parse the following string to search: '" + stringBuilder.toString() + "'. Error: " + exception.getMessage());
+                System.out.println("[ERROR] Unable to parse the following string to search: '"
+                        + stringBuilder.toString() + "'. Error: " + exception.getMessage());
                 continue;
             }
 
-            TopDocs results = searcher.search(query, hits);
+            TopDocs results;
+            try {
+                results = searcher.search(query, hits);
+            } catch (IOException exception) {
+                System.out.println("[ERROR] Unable to search index. Error: " + exception.getMessage());
+                continue;
+            }
             ScoreDoc[] retrievedDocuments = results.scoreDocs;
-            for (int index = 0, min = Math.min(results.totalHits, hits); index < min; index++) {
-                org.apache.lucene.document.Document doc = searcher.doc(retrievedDocuments[index].doc);
-                System.out.printf("%d\tQ0\t%s\t%2d\t%.6f\t%s\n",
-                        (Integer) pair.getKey(),
-                        doc.get(IndexableDocument.ID_FIELD),
+            saveSearch((Integer) pair.getKey(), retrievedDocuments,
+                    Math.min(results.totalHits, hits), searcher, (queryCounter > 0),
+                    LuceneTester.properties.getProperty("normal_search_output_file"));
+            queryCounter++;
+            
+            System.out.println("[INFO] Search #" + pair.getKey() + " completed...");
+        }
+    }
+
+    /**
+     * Saved the result of a search in the output file defined in the
+     * configuration file.
+     *
+     * @param searchNumber Number of the search.
+     * @param docs Set of documents retrieved in the search.
+     * @param amountDocs Amount of documents retrieved.
+     * @param searcher Searcher used to search for the documents.
+     * @param append Boolean to define if it should write in the beginning or
+     * append to the file.
+     * @param filename Output file name.
+     */
+    private void saveSearch(int searchNumber, ScoreDoc[] docs, int amountDocs, IndexSearcher searcher, boolean append, String filename) {
+        try (FileWriter fileWriter = new FileWriter(filename, append);
+                BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+                PrintWriter printerWriter = new PrintWriter(bufferedWriter)) {
+            for (int index = 0; index < amountDocs; index++) {
+                org.apache.lucene.document.Document doc;
+                String documentID;
+                try {
+                    doc = searcher.doc(docs[index].doc);
+                    documentID = doc.get(IndexableDocument.ID_FIELD);
+                } catch (IOException exception) {
+                    System.out.println("[ERROR] Unable to retrieve information about the document "
+                            + docs[index].doc + ". Error: " + exception.getMessage());
+                    documentID = "[DOCUMENT ID UNKNOWN DUE TO ERROR]";
+                }
+                printerWriter.printf("%d\tQ0\t%s\t%2d\t%.6f\t%s\n",
+                        searchNumber,
+                        documentID,
                         index,
-                        retrievedDocuments[index].score,
+                        docs[index].score,
                         LuceneTester.STUDENT);
             }
+        } catch (IOException e) {
+            System.out.println("[ERROR] Unable to write to the output file. Error: " + e.getMessage());
         }
     }
 
