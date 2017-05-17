@@ -5,6 +5,9 @@ package br.ufrgs.inf.cmp269lucenetesting;
  * @author cleber
  */
 public class IndexableDocument {
+    
+    public static final String PATH_FIELD = "path";
+    public static final String ID_FIELD = "path";
     private String documentId;
     private String title;
     private String content;

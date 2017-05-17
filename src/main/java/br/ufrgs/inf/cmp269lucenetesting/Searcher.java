@@ -7,14 +7,20 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -42,7 +48,7 @@ public class Searcher {
     }
 
     public void search() throws IOException {
-        System.out.println("Searching");
+        System.out.println("[INFO] Searching...");
 
         HashMap<Integer, Element> queries = loadQueries();
 
@@ -50,9 +56,37 @@ public class Searcher {
         IndexSearcher searcher = new IndexSearcher(reader);
         Analyzer analyzer = new StandardAnalyzer();
 
-        
         QueryParser parser = new QueryParser("contents", analyzer);
+        StringBuilder stringBuilder = new StringBuilder();
+        Query query;
+        Iterator<Map.Entry<Integer, Element>> iterator = queries.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry pair = (Map.Entry) iterator.next();
 
+            stringBuilder.setLength(0);
+            stringBuilder.append(((Element) pair.getValue()).getElementsByTagName("ES-title").item(0).getTextContent());
+            stringBuilder.append(" ");
+            stringBuilder.append(((Element) pair.getValue()).getElementsByTagName("ES-desc").item(0).getTextContent());
+
+            try {
+                query = parser.parse(parser.escape(stringBuilder.toString()));
+            } catch (ParseException exception) {
+                System.out.println("[ERROR] Unable to parse the following string to search: '" + stringBuilder.toString() + "'. Error: " + exception.getMessage());
+                continue;
+            }
+
+            TopDocs results = searcher.search(query, hits);
+            ScoreDoc[] retrievedDocuments = results.scoreDocs;
+            for (int index = 0, min = Math.min(results.totalHits, hits); index < min; index++) {
+                org.apache.lucene.document.Document doc = searcher.doc(retrievedDocuments[index].doc);
+                System.out.printf("%d\tQ0\t%s\t%2d\t%.6f\t%s\n",
+                        (Integer) pair.getKey(),
+                        doc.get(IndexableDocument.ID_FIELD),
+                        index,
+                        retrievedDocuments[index].score,
+                        LuceneTester.STUDENT);
+            }
+        }
     }
 
     /**
@@ -65,7 +99,7 @@ public class Searcher {
     private HashMap<Integer, Element> loadQueries() {
         HashMap<Integer, Element> queries = new HashMap<>();
 
-        String queryFileContent = LuceneTester.readFile(LuceneTester.properties.getProperty("queries_directory"));
+        String queryFileContent = LuceneTester.readFile(LuceneTester.properties.getProperty("queries_file"));
         if (queryFileContent == null) {
             return queries;
         }
