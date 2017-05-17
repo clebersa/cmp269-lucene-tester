@@ -43,7 +43,7 @@ public class Indexer {
         lastIndexDate = new Date();
         Date start = new Date();
         try {
-            System.out.println("Indexing to directory '" + LuceneTester.properties.getProperty("index_directory") + "'...");
+            System.out.println("[INFO] Indexing to directory '" + LuceneTester.properties.getProperty("index_directory") + "'...");
 
             Directory dir = FSDirectory.open(Paths.get(LuceneTester.properties.getProperty("index_directory")));
             Analyzer analyzer = new StandardAnalyzer();
@@ -137,7 +137,7 @@ public class Indexer {
                 indexableDocument.setContent(document);
                 indexDocument(writer, indexableDocument);
             } catch (Exception exception) {
-                System.out.println("[ERROR]\t Unable to write document " + fileContent + ". Error: " + exception.getMessage());
+                System.out.println("[ERROR]\t Unable to parse and process document " + file.toString() + ". Error: " + exception.getMessage());
             }
         }
     }
