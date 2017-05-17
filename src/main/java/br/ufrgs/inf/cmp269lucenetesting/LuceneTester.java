@@ -35,6 +35,7 @@ public class LuceneTester {
             System.out.print("\nChoose one option:\n"
                     + "1 - Index collection\n"
                     + "2 - Perform normal search\n"
+                    + "3 - Perform search removing stopwords\n"
                     + "0 - Quit\n"
                     + "Option: ");
             try {
@@ -51,6 +52,10 @@ public class LuceneTester {
                     break;
                 case 2:
                     searcher = new Searcher(100, SearchMode.NORMAL);
+                    searcher.search();
+                    break;
+                case 3:
+                    searcher = new Searcher(100, SearchMode.STOP_WORDS);
                     searcher.search();
                     break;
                 default:

@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -13,7 +14,13 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.es.SpanishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -23,6 +30,10 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Attribute;
+import org.apache.lucene.util.AttributeFactory;
+import org.apache.lucene.util.AttributeImpl;
+import org.apache.lucene.util.Version;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -61,26 +72,18 @@ public class Searcher {
             return;
         }
         IndexSearcher searcher = new IndexSearcher(reader);
-        Analyzer analyzer = new StandardAnalyzer();
 
-        QueryParser parser = new QueryParser("contents", analyzer);
-        StringBuilder stringBuilder = new StringBuilder();
         Query query;
         Iterator<Map.Entry<Integer, Element>> iterator = queries.entrySet().iterator();
         int queryCounter = 0;
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry) iterator.next();
 
-            stringBuilder.setLength(0);
-            stringBuilder.append(((Element) pair.getValue()).getElementsByTagName("ES-title").item(0).getTextContent());
-            stringBuilder.append(" ");
-            stringBuilder.append(((Element) pair.getValue()).getElementsByTagName("ES-desc").item(0).getTextContent());
-
             try {
-                query = parser.parse(parser.escape(stringBuilder.toString()));
+                query = buildQuery((Element) pair.getValue());
             } catch (ParseException exception) {
-                System.out.println("[ERROR] Unable to parse the following string to search: '"
-                        + stringBuilder.toString() + "'. Error: " + exception.getMessage());
+                System.out.println("[ERROR] Unable to parse string to search from document "
+                        + (Integer) pair.getKey() + " . Error: " + exception.getMessage());
                 continue;
             }
 
@@ -93,11 +96,60 @@ public class Searcher {
             }
             ScoreDoc[] retrievedDocuments = results.scoreDocs;
             saveSearch((Integer) pair.getKey(), retrievedDocuments,
-                    Math.min(results.totalHits, hits), searcher, (queryCounter > 0),
-                    LuceneTester.properties.getProperty("normal_search_output_file"));
+                    Math.min(results.totalHits, hits), searcher, (queryCounter > 0));
             queryCounter++;
-            
+
             System.out.println("[INFO] Search #" + pair.getKey() + " completed...");
+        }
+
+    }
+
+    private Query buildQuery(Element xmlDocument) throws ParseException {
+        Analyzer analyzer = new StandardAnalyzer();
+        QueryParser parser = new QueryParser("contents", analyzer);
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.setLength(0);
+        stringBuilder.append(xmlDocument.getElementsByTagName("ES-title").item(0).getTextContent());
+        stringBuilder.append(" ");
+        stringBuilder.append(xmlDocument.getElementsByTagName("ES-desc").item(0).getTextContent());
+        String queryString;
+        if (searchMode == SearchMode.STOP_WORDS) {
+            queryString = removeStopWords(stringBuilder.toString());
+        } else {
+            queryString = stringBuilder.toString();
+        }
+
+        Query query = parser.parse(parser.escape(queryString));
+        return query;
+    }
+
+    /**
+     * Removes stopwords from the query.
+     *
+     * @param query Query to be analyzed and have the stopwords removed from.
+     * @return Query without the stopwords or the original query if some error
+     * occurs.
+     */
+    private String removeStopWords(String query) {
+        CharArraySet stopWords = SpanishAnalyzer.getDefaultStopSet();
+        AttributeFactory factory = AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY;
+        StandardTokenizer standardTokenizer = new StandardTokenizer(factory);
+        standardTokenizer.setReader(new StringReader(query));
+        TokenStream tokenStream = standardTokenizer;
+        tokenStream = new StopFilter(tokenStream, stopWords);
+
+        CharTermAttribute charTermAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+        try {
+            StringBuilder sb = new StringBuilder();
+            tokenStream.reset();
+            while (tokenStream.incrementToken()) {
+                String term = charTermAttribute.toString();
+                sb.append(term + " ");
+            }
+            return sb.toString();
+        } catch (IOException exception) {
+            System.out.println("[ERROR] Unable to remove stopwords. Error: " + exception.getMessage());
+            return query;
         }
     }
 
@@ -113,7 +165,19 @@ public class Searcher {
      * append to the file.
      * @param filename Output file name.
      */
-    private void saveSearch(int searchNumber, ScoreDoc[] docs, int amountDocs, IndexSearcher searcher, boolean append, String filename) {
+    private void saveSearch(int searchNumber, ScoreDoc[] docs, int amountDocs, IndexSearcher searcher, boolean append) {
+        String filename;
+        switch (searchMode) {
+            case NORMAL:
+                filename = LuceneTester.properties.getProperty("normal_search_output_file");
+                break;
+            case STOP_WORDS:
+                filename = LuceneTester.properties.getProperty("stopwords_search_output_file");
+                break;
+            default:
+                System.out.println("[ERROR] No output file specified.");
+                return;
+        }
         try (FileWriter fileWriter = new FileWriter(filename, append);
                 BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                 PrintWriter printerWriter = new PrintWriter(bufferedWriter)) {
@@ -141,9 +205,8 @@ public class Searcher {
     }
 
     /**
-     * Loads the queries from a file into a HashMap object.
+     * Loads the queries from the queries file into a HashMap object.
      *
-     * @param queryFileContent The content of the file.
      * @return A HashMap with query numbers as keys and import
      * org.w3c.dom.Element as values.
      */
