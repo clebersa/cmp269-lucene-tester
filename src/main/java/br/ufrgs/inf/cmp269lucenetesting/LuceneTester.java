@@ -48,7 +48,7 @@ public class LuceneTester {
                 case 0:
                     break;
                 case 1:
-                    handleIndexOperation();
+                    indexer.indexCollection();
                     break;
                 case 2:
                     searcher = new Searcher(100, SearchMode.NORMAL);
@@ -83,22 +83,6 @@ public class LuceneTester {
                     System.out.println("[WARN] Unable to close input stream for properties file. Error: " + e.getMessage());
                 }
             }
-        }
-    }
-
-    private static void handleIndexOperation() {
-        if (indexer.getLastIndexDate() != null) {
-            System.out.println("The collection was indexed at "
-                    + indexer.getLastIndexDate() + ". Do you want to index again?\n"
-                    + "Yes or No?[no]");
-            String answer = scanner.next();
-            if (answer.equalsIgnoreCase("yes") || answer.equalsIgnoreCase("y")) {
-                indexer.indexCollection();
-            } else {
-                System.out.println("Operation cancelled.");
-            }
-        } else {
-            indexer.indexCollection();
         }
     }
 

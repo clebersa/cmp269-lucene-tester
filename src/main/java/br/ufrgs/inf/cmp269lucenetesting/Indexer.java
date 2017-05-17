@@ -21,55 +21,49 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 /**
- * Indexer of files. This file is strongly based on the file from the Lucene
- * demo, available here:
- * https://lucene.apache.org/core/6_5_1/demo/src-html/org/apache/lucene/demo/IndexFiles.html
+ * Indexer for SGML files. This file is strongly based on the file from the
+ * Lucene demo, available here:
+ * https://github.com/apache/lucene-solr/blob/master/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java
+ * The demo is available here:
+ * https://lucene.apache.org/core/6_5_1/demo/overview-summary.html
  *
  * @author cleber
  */
 public class Indexer {
 
-    private Date lastIndexDate;
-
-    public Indexer() {
-        //TODO: Read from index folder and discover when the last index was performed.
-    }
-
-    public Date getLastIndexDate() {
-        return lastIndexDate;
-    }
-
+    /**
+     * Indexes a collection of SGML files.
+     */
     public void indexCollection() {
-        lastIndexDate = new Date();
+        System.out.println("[INFO] Indexing to directory '"
+                + LuceneTester.properties.getProperty("index_directory") + "'...");
+
+        Path filesDirectory = Paths.get(LuceneTester.properties.getProperty("files_directory"));
+        if (!Files.isReadable(filesDirectory)) {
+            System.out.println("[ERROR] Unable to read from files directory '"
+                    + filesDirectory.toAbsolutePath() + "'. Check path in the configuration file.");
+            return;
+        }
+
+        Path indexDirectory = Paths.get(LuceneTester.properties.getProperty("index_directory"));
+        if (!Files.isWritable(indexDirectory)) {
+            System.out.println("[ERROR] Unable to write to index directory '"
+                    + indexDirectory.toAbsolutePath() + "'. Check path in the configuration file.");
+            return;
+        }
+
         Date start = new Date();
-        try {
-            System.out.println("[INFO] Indexing to directory '" + LuceneTester.properties.getProperty("index_directory") + "'...");
+        try (Directory luceneIndexDirectory = FSDirectory.open(indexDirectory);
+                Analyzer analyzer = new StandardAnalyzer()) {
+            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
+            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
-            Directory dir = FSDirectory.open(Paths.get(LuceneTester.properties.getProperty("index_directory")));
-            Analyzer analyzer = new StandardAnalyzer();
-            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
-
-            iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
-
-            // Optional: for better indexing performance, if you
-            // are indexing many documents, increase the RAM
-            // buffer.  But if you do this, increase the max heap
-            // size to the JVM (eg add -Xmx512m or -Xmx1g):
-            //iwc.setRAMBufferSizeMB(256.0);
-            IndexWriter writer = new IndexWriter(dir, iwc);
-            indexFiles(writer, Paths.get(LuceneTester.properties.getProperty("files_directory")));
-
-            // NOTE: if you want to maximize search performance,
-            // you can optionally call forceMerge here.  This can be
-            // a terribly costly operation, so generally it's only
-            // worth it when your index is relatively static (ie
-            // you're done adding documents to it):
-            // writer.forceMerge(1);
-            writer.close();
+            try (IndexWriter writer = new IndexWriter(luceneIndexDirectory, indexWriterConfig)) {
+                processFiles(writer, filesDirectory);
+            }
 
             Date end = new Date();
-            System.out.println(end.getTime() - start.getTime() + " total milliseconds");
-
+            System.out.println("[INFO] Documents indexed in " + (end.getTime() - start.getTime()) + " milliseconds.");
         } catch (IOException e) {
             System.out.println(" caught a " + e.getClass()
                     + "\n with message: " + e.getMessage());
@@ -78,33 +72,22 @@ public class Indexer {
     }
 
     /**
-     * Indexes the given file using the given writer, or if a directory is
+     * Processes the given file using the given writer, or if a directory is
      * given, recurses over files and directories found under the given
      * directory.
      *
-     * NOTE: This method indexes one document per input file. This is slow. For
-     * good throughput, put multiple documents into your input file(s). An
-     * example of this is in the benchmark module, which can create "line doc"
-     * files, one document per line, using the
-     * <a href="../../../../../contrib-benchmark/org/apache/lucene/benchmark/byTask/tasks/WriteLineDocTask.html"
-     * >WriteLineDocTask</a>.
-     *
      * @param writer Writer to the index where the given file/dir info will be
-     * stored
+     * stored.
      * @param path The file to index, or the directory to recurse into to find
-     * files to index
-     * @throws IOException If there is a low-level I/O error
+     * files to index.
+     * @throws IOException If there is a low-level I/O error.
      */
-    void indexFiles(final IndexWriter writer, Path path) throws IOException {
+    private void processFiles(final IndexWriter writer, Path path) throws IOException {
         if (Files.isDirectory(path)) {
             Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    try {
-                        processFile(writer, file);
-                    } catch (IOException ignore) {
-                        // don't index files that can't be read.
-                    }
+                    processFile(writer, file);
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -114,12 +97,18 @@ public class Indexer {
     }
 
     /**
-     * Indexes a single file
+     * Processes a single file, extracting documents from it and indexing them.
+     *
+     * @param writer Writer to the index where the given file info will be
+     * stored.
+     * @param path The file to index, or the directory to recurse into to find
+     * files to index.
      */
-    void processFile(IndexWriter writer, Path file) throws IOException {
+    private void processFile(IndexWriter writer, Path file) {
         String fileContent = LuceneTester.readFile(file.toString());
         if (fileContent == null) {
             System.out.println("[ERROR] Unable to process " + file.toString());
+            return;
         }
         System.out.println("[INFO] Processing " + file.toString());
 
@@ -143,45 +132,28 @@ public class Indexer {
     }
 
     /**
-     * Indexes a single document
+     * Indexes a single document.
+     *
+     * @param writer Writer to the index where the given file info will be
+     * stored.
+     * @param indexableDocument Indexable document to be indexed.
+     * @throws IOException If there is a low-level I/O error.
      */
     private void indexDocument(IndexWriter writer, IndexableDocument indexableDocument) throws IOException {
-        // make a new, empty document
         Document doc = new Document();
 
-        // Add the path of the file as a field named "path".  Use a
-        // field that is indexed (i.e. searchable), but don't tokenize 
-        // the field into separate words and don't index term frequency
-        // or positional information:
-        Field pathField = new StringField("path", indexableDocument.getDocumentId(), Field.Store.YES);
-        doc.add(pathField);
-
-        // Add the last modified date of the file a field named "modified".
-        // Use a LongPoint that is indexed (i.e. efficiently filterable with
-        // PointRangeQuery).  This indexes to milli-second resolution, which
-        // is often too fine.  You could instead create a number based on
-        // year/month/day/hour/minutes/seconds, down the resolution you require.
-        // For example the long value 2011021714 would mean
-        // February 17, 2011, 2-3 PM.
-        // doc.add(new LongPoint("modified", lastModified));
-        // Add the contents of the file to a field named "contents".  Specify a Reader,
-        // so that the text of the file is tokenized and indexed, but not stored.
-        // Note that FileReader expects the file to be in UTF-8 encoding.
-        // If that's not the case searching for special characters will fail.
-        //doc.add(new TextField("contents", new BufferedReader(new InputStreamReader(stream, Charset.forName("ISO-8859-15")))));
-        doc.add(new TextField("contents", indexableDocument.getContent(), Field.Store.NO));
-        doc.add(new TextField("title", indexableDocument.getTitle(), Field.Store.NO));
+        doc.add(new StringField(IndexableDocument.ID_FIELD,
+                indexableDocument.getDocumentId(), Field.Store.YES));
+        doc.add(new TextField(IndexableDocument.CONTENT_FIELD,
+                indexableDocument.getContent(), Field.Store.NO));
 
         if (writer.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
-            // New index, so we just add the document (no old document can be there):
             System.out.println("adding " + indexableDocument.getDocumentId());
             writer.addDocument(doc);
         } else {
-            // Existing index (an old copy of this document may have been indexed) so 
-            // we use updateDocument instead to replace the old one matching the exact 
-            // path, if present:
             System.out.println("updating " + indexableDocument.getDocumentId());
-            writer.updateDocument(new Term("path", indexableDocument.getDocumentId()), doc);
+            writer.updateDocument(new Term(IndexableDocument.ID_FIELD,
+                    indexableDocument.getDocumentId()), doc);
         }
     }
 }
