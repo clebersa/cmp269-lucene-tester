@@ -11,6 +11,7 @@ import java.util.Properties;
 import java.util.Scanner;
 
 /**
+ * Main class of the project, start point for the tool.
  *
  * @author cleber
  */
@@ -20,11 +21,12 @@ public class LuceneTester {
     public static final String STUDENT = "Cleber";
 
     public static Properties properties;
-    private static Indexer indexer;
-    private static Scanner scanner;
 
     public static void main(String args[]) {
         int option;
+        Indexer indexer;
+        Scanner scanner;
+
         indexer = new Indexer();
         scanner = new Scanner(System.in);
         Searcher searcher;
@@ -65,6 +67,9 @@ public class LuceneTester {
 
     }
 
+    /**
+     * Loads the properties from the properties file.
+     */
     private static void loadProperties() {
         properties = new Properties();
         InputStream input = null;
@@ -90,8 +95,8 @@ public class LuceneTester {
      * Reads the content of a file and stores it in a string.
      *
      * @param path Path to the file to be read.
-     * @return The content of the file in a string. If some error occurs to open
-     * the file, null is returned
+     * @return The content of the file in a string. If some error occurs while
+     * opening the file, null is returned
      */
     public static String readFile(String path) {
         String content;

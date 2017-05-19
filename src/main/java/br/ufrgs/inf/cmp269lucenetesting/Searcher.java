@@ -31,10 +31,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Attribute;
 import org.apache.lucene.util.AttributeFactory;
-import org.apache.lucene.util.AttributeImpl;
-import org.apache.lucene.util.Version;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -42,6 +39,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
+ * Searcher used to perform searches in a previous indexed set of files.
  *
  * @author cleber
  */
@@ -55,11 +53,20 @@ public class Searcher {
         searchMode = SearchMode.NORMAL;
     }
 
+    /**
+     * Created a new search with a specific configuration.
+     *
+     * @param hits Number of documents to be retrieved.
+     * @param searchMode Type of search to be performed.
+     */
     public Searcher(int hits, SearchMode searchMode) {
         this.hits = hits;
         this.searchMode = searchMode;
     }
 
+    /**
+     * Searches for queries in the indexed files.
+     */
     public void search() {
         System.out.println("[INFO] Searching...");
 
@@ -105,6 +112,15 @@ public class Searcher {
 
     }
 
+    /**
+     * Builds the query to be used in the search based in the XML element
+     * representing the query obtained from the queries file.
+     *
+     * @param xmlDocument XML element containing the query data.
+     * @return The query to be used in the search.
+     * @throws ParseException If any error occurs while parsing the data for the
+     * query.
+     */
     private Query buildQuery(Element xmlDocument) throws ParseException {
         Analyzer analyzer = new StandardAnalyzer();
         QueryParser parser = new QueryParser("contents", analyzer);
@@ -125,10 +141,10 @@ public class Searcher {
     }
 
     /**
-     * Removes stopwords from the query.
+     * Removes stop words from the query.
      *
-     * @param query Query to be analyzed and have the stopwords removed from.
-     * @return Query without the stopwords or the original query if some error
+     * @param query Query to be analyzed and have the stop words removed from.
+     * @return Query without the stop words or the original query if some error
      * occurs.
      */
     private String removeStopWords(String query) {
@@ -155,7 +171,7 @@ public class Searcher {
     }
 
     /**
-     * Saved the result of a search in the output file defined in the
+     * Saves the result of a search in the output file defined in the
      * configuration file.
      *
      * @param searchNumber Number of the search.
@@ -192,7 +208,7 @@ public class Searcher {
             System.out.println("[ERROR] Unable to open File Writer for . Error: " + exception.getMessage());
             return;
         }
-        
+
         try (BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                 PrintWriter printerWriter = new PrintWriter(bufferedWriter)) {
             for (int index = 0; index < amountDocs; index++) {
@@ -215,7 +231,7 @@ public class Searcher {
             }
         } catch (IOException e) {
             System.out.println("[ERROR] Unable to write to the output file. Error: " + e.getMessage());
-        } finally{
+        } finally {
             try {
                 fileWriter.close();
             } catch (IOException e) {
@@ -227,8 +243,8 @@ public class Searcher {
     /**
      * Loads the queries from the queries file into a HashMap object.
      *
-     * @return A HashMap with query numbers as keys and import
-     * org.w3c.dom.Element as values.
+     * @return A HashMap with query numbers as keys and org.w3c.dom.Element as
+     * values.
      */
     private HashMap<Integer, Element> loadQueries() {
         HashMap<Integer, Element> queries = new HashMap<>();
