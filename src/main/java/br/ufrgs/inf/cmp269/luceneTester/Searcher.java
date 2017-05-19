@@ -1,4 +1,4 @@
-package br.ufrgs.inf.cmp269lucenetesting;
+package br.ufrgs.inf.cmp269.luceneTester;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;

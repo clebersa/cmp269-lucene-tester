@@ -1,4 +1,4 @@
-package br.ufrgs.inf.cmp269lucenetesting;
+package br.ufrgs.inf.cmp269.luceneTester;
 
 import java.io.FileInputStream;
 import java.io.IOException;

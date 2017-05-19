@@ -1,4 +1,4 @@
-package br.ufrgs.inf.cmp269lucenetesting;
+package br.ufrgs.inf.cmp269.luceneTester;
 
 /**
  * Modes to be used in the searches.

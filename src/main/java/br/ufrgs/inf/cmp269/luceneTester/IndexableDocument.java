@@ -1,4 +1,4 @@
-package br.ufrgs.inf.cmp269lucenetesting;
+package br.ufrgs.inf.cmp269.luceneTester;
 
 /**
  * Defines some the object of a indexable document for the system.
