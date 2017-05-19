@@ -21,7 +21,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 /**
- * Indexer for SGML files. This file is strongly based on the file from the
+ * Indexer for SGML files. This file is based on the file from the
  * Lucene demo, available here:
  * https://github.com/apache/lucene-solr/blob/master/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java
  * The demo is available here:
@@ -122,7 +122,6 @@ public class Indexer {
             try {
                 indexableDocument = new IndexableDocument();
                 indexableDocument.setDocumentId(((document.split("<DOCID>", 2))[1].split("</DOCID>", 2))[0]);
-                indexableDocument.setTitle(((document.split("<TITLE>", 2))[1].split("</TITLE>", 2))[0]);
                 indexableDocument.setContent(document);
                 indexDocument(writer, indexableDocument);
             } catch (Exception exception) {

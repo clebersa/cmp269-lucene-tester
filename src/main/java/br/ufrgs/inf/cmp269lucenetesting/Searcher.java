@@ -2,6 +2,7 @@ package br.ufrgs.inf.cmp269lucenetesting;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -178,8 +179,21 @@ public class Searcher {
                 System.out.println("[ERROR] No output file specified.");
                 return;
         }
-        try (FileWriter fileWriter = new FileWriter(filename, append);
-                BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+        FileWriter fileWriter;
+        File file = new File(filename);
+        try {
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            }
+            fileWriter = new FileWriter(file, append);
+        } catch (IOException exception) {
+            System.out.println("[ERROR] Unable to open File Writer for . Error: " + exception.getMessage());
+            return;
+        }
+        
+        try (BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                 PrintWriter printerWriter = new PrintWriter(bufferedWriter)) {
             for (int index = 0; index < amountDocs; index++) {
                 org.apache.lucene.document.Document doc;
@@ -201,6 +215,12 @@ public class Searcher {
             }
         } catch (IOException e) {
             System.out.println("[ERROR] Unable to write to the output file. Error: " + e.getMessage());
+        } finally{
+            try {
+                fileWriter.close();
+            } catch (IOException e) {
+                System.out.println("[ERROR] Unable to close File Writer. Error: " + e.getMessage());
+            }
         }
     }
 

@@ -12,7 +12,6 @@ public class IndexableDocument {
     public static final String CONTENT_FIELD = "contents";
 
     private String documentId;
-    private String title;
     private String content;
 
     public String getDocumentId() {
@@ -21,14 +20,6 @@ public class IndexableDocument {
 
     public void setDocumentId(String documentId) {
         this.documentId = documentId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public String getContent() {
