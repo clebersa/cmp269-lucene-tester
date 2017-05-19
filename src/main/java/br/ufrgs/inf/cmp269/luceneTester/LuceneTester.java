@@ -27,11 +27,11 @@ public class LuceneTester {
         Indexer indexer;
         Scanner scanner;
 
+        loadProperties((args.length > 0) ? args[0] : null);
+
         indexer = new Indexer();
         scanner = new Scanner(System.in);
         Searcher searcher;
-
-        loadProperties();
 
         do {
             System.out.print("\nChoose one option:\n"
@@ -69,16 +69,21 @@ public class LuceneTester {
 
     /**
      * Loads the properties from the properties file.
+     *
+     * @param path Path to the properties file.
      */
-    private static void loadProperties() {
+    private static void loadProperties(String path) {
         properties = new Properties();
         InputStream input = null;
 
         try {
-            input = new FileInputStream("config.properties");
+            input = new FileInputStream((path == null) ? "config.properties" : path);
             properties.load(input);
         } catch (IOException ex) {
-            System.out.println("[WARN] Unable to load properties. Error: " + ex.getMessage());
+            System.out.println("[ERROR] Unable to load properties. Error: " + ex.getMessage());
+            System.out.println("[ERROR] Either...");
+            System.out.println("[ERROR] - Place the properties file in the same folder where you are running the command line; OR");
+            System.out.println("[ERROR] - Provide the URL for the properties file as the first argument in the command line.");
             System.exit(1);
         } finally {
             if (input != null) {
