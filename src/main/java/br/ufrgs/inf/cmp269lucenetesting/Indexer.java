@@ -21,8 +21,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 /**
- * Indexer for SGML files. This file is based on the file from the
- * Lucene demo, available here:
+ * Indexer for SGML files. This file is based on the file from the Lucene demo,
+ * available here:
  * https://github.com/apache/lucene-solr/blob/master/lucene/demo/src/java/org/apache/lucene/demo/IndexFiles.java
  * The demo is available here:
  * https://lucene.apache.org/core/6_5_1/demo/overview-summary.html
@@ -46,9 +46,12 @@ public class Indexer {
         }
 
         Path indexDirectory = Paths.get(LuceneTester.properties.getProperty("index_directory"));
-        if (!Files.isWritable(indexDirectory)) {
+        if (!indexDirectory.toFile().exists() && !indexDirectory.toFile().mkdirs()) {
             System.out.println("[ERROR] Unable to write to index directory '"
-                    + indexDirectory.toAbsolutePath() + "'. Check path in the configuration file.");
+                    + indexDirectory.toAbsolutePath() + "'. The directory could not be created. Check path in the configuration file.");
+        } else if (!Files.isWritable(indexDirectory)) {
+            System.out.println("[ERROR] Unable to write to index directory '"
+                    + indexDirectory.toAbsolutePath() + "' The directory is not writable. Check path in the configuration file.");
             return;
         }
 
