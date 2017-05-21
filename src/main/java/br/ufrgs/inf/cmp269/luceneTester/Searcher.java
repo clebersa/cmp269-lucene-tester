@@ -123,7 +123,7 @@ public class Searcher {
      */
     private Query buildQuery(Element xmlDocument) throws ParseException {
         Analyzer analyzer = new StandardAnalyzer();
-        QueryParser parser = new QueryParser("contents", analyzer);
+        QueryParser parser = new QueryParser(IndexableDocument.CONTENT_FIELD, analyzer);
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.setLength(0);
         stringBuilder.append(xmlDocument.getElementsByTagName("ES-title").item(0).getTextContent());
