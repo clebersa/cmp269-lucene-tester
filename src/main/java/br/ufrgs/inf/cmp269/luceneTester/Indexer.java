@@ -7,7 +7,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -30,6 +32,16 @@ import org.apache.lucene.store.FSDirectory;
  * @author cleber
  */
 public class Indexer {
+    
+    private HashSet<AnalysisOption> options;
+
+    public Indexer() {
+        this(new AnalysisOption[0]);
+    }
+    
+    public Indexer(AnalysisOption[] options) {
+        this.options = new HashSet<>(Arrays.asList(options));
+    }
 
     /**
      * Indexes a collection of SGML files.
@@ -56,12 +68,12 @@ public class Indexer {
             return;
         }
 
-        Date start = new Date();
         try (Directory luceneIndexDirectory = FSDirectory.open(indexDirectory);
                 Analyzer analyzer = new StandardAnalyzer()) {
             IndexWriterConfig indexWriterConfig = new IndexWriterConfig(analyzer);
             indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
+            Date start = new Date();
             try (IndexWriter writer = new IndexWriter(luceneIndexDirectory, indexWriterConfig)) {
                 processFiles(writer, filesDirectory);
             }
@@ -125,13 +137,24 @@ public class Indexer {
             }
             try {
                 indexableDocument = new IndexableDocument();
-                indexableDocument.setDocumentId(((document.split("<DOCID>", 2))[1].split("</DOCID>", 2))[0]);
-                indexableDocument.setContent(document);
                 indexDocument(writer, indexableDocument);
             } catch (Exception exception) {
                 System.out.println("[ERROR]\t Unable to parse and process document " + file.toString() + ". Error: " + exception.getMessage());
             }
         }
+    }
+    
+    private IndexableDocument buildDocument(String documentContent){
+        IndexableDocument indexableDocument = new IndexableDocument();
+        
+        indexableDocument.setDocumentId(((documentContent.split("<DOCID>", 2))[1].split("</DOCID>", 2))[0]);
+        indexableDocument.setDocumentId(((documentContent.split("<TITLE>", 2))[1].split("</TITLE>", 2))[0]);
+        indexableDocument.setDocumentId(((documentContent.split("<TEXT>", 2))[1].split("</TEXT>", 2))[0]);
+        
+        if(options.contains(AnalysisOption.STOP_WORDS)){
+            
+        }
+        return null;
     }
 
     /**
