@@ -49,6 +49,7 @@ public class Indexer {
         if (!indexDirectory.toFile().exists() && !indexDirectory.toFile().mkdirs()) {
             System.out.println("[ERROR] Unable to write to index directory '"
                     + indexDirectory.toAbsolutePath() + "'. The directory could not be created. Check path in the configuration file.");
+            return;
         } else if (!Files.isWritable(indexDirectory)) {
             System.out.println("[ERROR] Unable to write to index directory '"
                     + indexDirectory.toAbsolutePath() + "' The directory is not writable. Check path in the configuration file.");
