@@ -1,5 +1,6 @@
 package br.ufrgs.inf.cmp269.luceneTester;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -71,6 +72,11 @@ public class Indexer {
             System.out.println("[ERROR] Unable to write to index directory '"
                     + indexDirectory.toAbsolutePath() + "' The directory is not writable. Check path in the configuration file.");
             return;
+        }
+        
+        System.out.println("[INFO] Deleting old index if any...");
+        for(File file: indexDirectory.toFile().listFiles()){
+            file.delete();
         }
 
         try (Directory luceneIndexDirectory = FSDirectory.open(indexDirectory);

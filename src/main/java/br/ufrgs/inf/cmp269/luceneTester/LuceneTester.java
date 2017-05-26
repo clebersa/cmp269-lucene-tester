@@ -38,8 +38,10 @@ public class LuceneTester {
                     + "2 - Index collection removing stop words\n"
                     + "3 - Index collection performing stemming\n"
                     + "4 - Index collection removing stop words and performing stemming\n"
-                    + "5 - Perform normal search\n"
-                    + "6 - Perform search removing stopwords\n"
+                    + "5 - Search collection without any analysis\n"
+                    + "6 - Search collection removing stop words\n"
+                    + "7 - Search collection performing stemming\n"
+                    + "8 - Search collection removing stop words and performing stemming\n"
                     + "0 - Quit\n"
                     + "Option: ");
             try {
@@ -72,11 +74,23 @@ public class LuceneTester {
                     indexer.indexCollection();
                     break;
                 case 5:
-                    searcher = new Searcher(100, SearchMode.NORMAL);
+                    searcher = new Searcher(100);
                     searcher.search();
                     break;
                 case 6:
-                    searcher = new Searcher(100, SearchMode.STOP_WORDS);
+                    searcher = new Searcher(100, new AnalysisOption[]{
+                        AnalysisOption.STOP_WORDS});
+                    searcher.search();
+                    break;
+                case 7:
+                    searcher = new Searcher(100, new AnalysisOption[]{
+                        AnalysisOption.STEM});
+                    searcher.search();
+                    break;
+                case 8:
+                    searcher = new Searcher(100, new AnalysisOption[]{
+                        AnalysisOption.STOP_WORDS,
+                        AnalysisOption.STEM});
                     searcher.search();
                     break;
                 default:

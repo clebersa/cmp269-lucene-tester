@@ -9,7 +9,10 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
@@ -46,22 +49,26 @@ import org.w3c.dom.NodeList;
 public class Searcher {
 
     int hits;
-    SearchMode searchMode;
+    private HashSet<AnalysisOption> options;
 
-    public Searcher() {
-        hits = 10;
-        searchMode = SearchMode.NORMAL;
+    /**
+     * Created a new search with a specific configuration.
+     *
+     * @param hits Number of documents to be retrieved.
+     */
+    public Searcher(int hits) {
+        this(hits, new AnalysisOption[0]);
     }
 
     /**
      * Created a new search with a specific configuration.
      *
      * @param hits Number of documents to be retrieved.
-     * @param searchMode Type of search to be performed.
+     * @param options Options to be used when analyzing the search query.
      */
-    public Searcher(int hits, SearchMode searchMode) {
+    public Searcher(int hits, AnalysisOption[] options) {
+        this.options = new HashSet<>(Arrays.asList(options));
         this.hits = hits;
-        this.searchMode = searchMode;
     }
 
     /**
@@ -84,6 +91,7 @@ public class Searcher {
         Query query;
         Iterator<Map.Entry<Integer, Element>> iterator = queries.entrySet().iterator();
         int queryCounter = 0;
+        Date start = new Date();
         while (iterator.hasNext()) {
             Map.Entry pair = (Map.Entry) iterator.next();
 
@@ -109,7 +117,8 @@ public class Searcher {
 
             System.out.println("[INFO] Search #" + pair.getKey() + " completed...");
         }
-
+        Date end = new Date();
+        System.out.println("[INFO] Documents searched in " + (end.getTime() - start.getTime()) + " milliseconds.");
     }
 
     /**
@@ -129,45 +138,11 @@ public class Searcher {
         stringBuilder.append(xmlDocument.getElementsByTagName("ES-title").item(0).getTextContent());
         stringBuilder.append(" ");
         stringBuilder.append(xmlDocument.getElementsByTagName("ES-desc").item(0).getTextContent());
-        String queryString;
-        if (searchMode == SearchMode.STOP_WORDS) {
-            queryString = removeStopWords(stringBuilder.toString());
-        } else {
-            queryString = stringBuilder.toString();
-        }
+        AnalisysPerformer analisysPerformer = new AnalisysPerformer(options);
+        String queryString = analisysPerformer.analyze(stringBuilder.toString());
 
         Query query = parser.parse(parser.escape(queryString));
         return query;
-    }
-
-    /**
-     * Removes stop words from the query.
-     *
-     * @param query Query to be analyzed and have the stop words removed from.
-     * @return Query without the stop words or the original query if some error
-     * occurs.
-     */
-    private String removeStopWords(String query) {
-        CharArraySet stopWords = SpanishAnalyzer.getDefaultStopSet();
-        AttributeFactory factory = AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY;
-        StandardTokenizer standardTokenizer = new StandardTokenizer(factory);
-        standardTokenizer.setReader(new StringReader(query));
-        TokenStream tokenStream = standardTokenizer;
-        tokenStream = new StopFilter(tokenStream, stopWords);
-
-        CharTermAttribute charTermAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-        try {
-            StringBuilder sb = new StringBuilder();
-            tokenStream.reset();
-            while (tokenStream.incrementToken()) {
-                String term = charTermAttribute.toString();
-                sb.append(term + " ");
-            }
-            return sb.toString();
-        } catch (IOException exception) {
-            System.out.println("[ERROR] Unable to remove stopwords. Error: " + exception.getMessage());
-            return query;
-        }
     }
 
     /**
@@ -183,18 +158,9 @@ public class Searcher {
      * @param filename Output file name.
      */
     private void saveSearch(int searchNumber, ScoreDoc[] docs, int amountDocs, IndexSearcher searcher, boolean append) {
-        String filename;
-        switch (searchMode) {
-            case NORMAL:
-                filename = LuceneTester.properties.getProperty("normal_search_output_file");
-                break;
-            case STOP_WORDS:
-                filename = LuceneTester.properties.getProperty("stopwords_search_output_file");
-                break;
-            default:
-                System.out.println("[ERROR] No output file specified.");
-                return;
-        }
+        String filename = LuceneTester.properties.getProperty("output_folder") + "search_result";
+        filename = options.stream().map((option) -> "-" + option).reduce(filename, String::concat);
+        filename += ".txt";
 
         FileWriter fileWriter;
         File file = new File(filename);
