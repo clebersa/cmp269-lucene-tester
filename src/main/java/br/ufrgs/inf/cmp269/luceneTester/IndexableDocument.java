@@ -8,18 +8,27 @@ package br.ufrgs.inf.cmp269.luceneTester;
 public class IndexableDocument {
 
     public static final String ID_FIELD = "id";
-    public static final String PATH_FIELD = "path";
+    public static final String TITLE_FIELD = "path";
     public static final String CONTENT_FIELD = "contents";
 
-    private String documentId;
+    private String id;
+    private String title;
     private String content;
 
-    public String getDocumentId() {
-        return documentId;
+    public String getId() {
+        return id;
     }
 
-    public void setDocumentId(String documentId) {
-        this.documentId = documentId;
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public String getContent() {

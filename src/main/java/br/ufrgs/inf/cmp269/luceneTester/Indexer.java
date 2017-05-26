@@ -32,13 +32,18 @@ import org.apache.lucene.store.FSDirectory;
  * @author cleber
  */
 public class Indexer {
-    
+
     private HashSet<AnalysisOption> options;
 
     public Indexer() {
         this(new AnalysisOption[0]);
     }
-    
+
+    /**
+     * Creates a new indexer with options for indexing.
+     *
+     * @param options Options to be used when indexing.
+     */
     public Indexer(AnalysisOption[] options) {
         this.options = new HashSet<>(Arrays.asList(options));
     }
@@ -129,32 +134,36 @@ public class Indexer {
         System.out.println("[INFO] Processing " + file.toString());
 
         String documents[] = fileContent.split("(?<=</DOC>)");
-        IndexableDocument indexableDocument;
         for (String document : documents) {
             document = document.trim();
             if (document.isEmpty()) {
                 continue;
             }
             try {
-                indexableDocument = new IndexableDocument();
-                indexDocument(writer, indexableDocument);
+                indexDocument(writer, buildDocument(document));
             } catch (Exception exception) {
                 System.out.println("[ERROR]\t Unable to parse and process document " + file.toString() + ". Error: " + exception.getMessage());
             }
         }
     }
-    
-    private IndexableDocument buildDocument(String documentContent){
+
+    /**
+     * Builds a indexable document.
+     *
+     * @param documentContent Content of the entire document (from &lt;DOC&gt;
+     * to &lt;/DOC&gt;)
+     * @return
+     */
+    private IndexableDocument buildDocument(String documentContent) {
         IndexableDocument indexableDocument = new IndexableDocument();
-        
-        indexableDocument.setDocumentId(((documentContent.split("<DOCID>", 2))[1].split("</DOCID>", 2))[0]);
-        indexableDocument.setDocumentId(((documentContent.split("<TITLE>", 2))[1].split("</TITLE>", 2))[0]);
-        indexableDocument.setDocumentId(((documentContent.split("<TEXT>", 2))[1].split("</TEXT>", 2))[0]);
-        
-        if(options.contains(AnalysisOption.STOP_WORDS)){
-            
-        }
-        return null;
+        AnalisysPerformer analisysPerformer = new AnalisysPerformer(options);
+        indexableDocument.setId(((documentContent.split("<DOCID>", 2))[1].split("</DOCID>", 2))[0]);
+        indexableDocument.setTitle(analisysPerformer.analyze(
+                ((documentContent.split("<TITLE>", 2))[1].split("</TITLE>", 2))[0]));
+        indexableDocument.setContent(analisysPerformer.analyze(
+                ((documentContent.split("<TEXT>", 2))[1].split("</TEXT>", 2))[0]));
+
+        return indexableDocument;
     }
 
     /**
@@ -169,17 +178,19 @@ public class Indexer {
         Document doc = new Document();
 
         doc.add(new StringField(IndexableDocument.ID_FIELD,
-                indexableDocument.getDocumentId(), Field.Store.YES));
+                indexableDocument.getId(), Field.Store.YES));
+        doc.add(new TextField(IndexableDocument.TITLE_FIELD,
+                indexableDocument.getContent(), Field.Store.NO));
         doc.add(new TextField(IndexableDocument.CONTENT_FIELD,
                 indexableDocument.getContent(), Field.Store.NO));
 
         if (writer.getConfig().getOpenMode() == IndexWriterConfig.OpenMode.CREATE) {
-            System.out.println("adding " + indexableDocument.getDocumentId());
+            System.out.println("adding " + indexableDocument.getId());
             writer.addDocument(doc);
         } else {
-            System.out.println("updating " + indexableDocument.getDocumentId());
+            System.out.println("updating " + indexableDocument.getId());
             writer.updateDocument(new Term(IndexableDocument.ID_FIELD,
-                    indexableDocument.getDocumentId()), doc);
+                    indexableDocument.getId()), doc);
         }
     }
 }

@@ -29,15 +29,17 @@ public class LuceneTester {
 
         loadProperties((args.length > 0) ? args[0] : null);
 
-        indexer = new Indexer();
         scanner = new Scanner(System.in);
         Searcher searcher;
 
         do {
             System.out.print("\nChoose one option:\n"
-                    + "1 - Index collection\n"
-                    + "2 - Perform normal search\n"
-                    + "3 - Perform search removing stopwords\n"
+                    + "1 - Index collection without any analysis\n"
+                    + "2 - Index collection removing stop words\n"
+                    + "3 - Index collection performing stemming\n"
+                    + "4 - Index collection removing stop words and performing stemming\n"
+                    + "5 - Perform normal search\n"
+                    + "6 - Perform search removing stopwords\n"
                     + "0 - Quit\n"
                     + "Option: ");
             try {
@@ -50,13 +52,30 @@ public class LuceneTester {
                 case 0:
                     break;
                 case 1:
+                    indexer = new Indexer();
                     indexer.indexCollection();
                     break;
                 case 2:
+                    indexer = new Indexer(new AnalysisOption[]{
+                        AnalysisOption.STOP_WORDS});
+                    indexer.indexCollection();
+                    break;
+                case 3:
+                    indexer = new Indexer(new AnalysisOption[]{
+                        AnalysisOption.STEM});
+                    indexer.indexCollection();
+                    break;
+                case 4:
+                    indexer = new Indexer(new AnalysisOption[]{
+                        AnalysisOption.STOP_WORDS,
+                        AnalysisOption.STEM});
+                    indexer.indexCollection();
+                    break;
+                case 5:
                     searcher = new Searcher(100, SearchMode.NORMAL);
                     searcher.search();
                     break;
-                case 3:
+                case 6:
                     searcher = new Searcher(100, SearchMode.STOP_WORDS);
                     searcher.search();
                     break;
