@@ -134,14 +134,18 @@ public class Searcher {
         Analyzer analyzer = new StandardAnalyzer();
         QueryParser parser = new QueryParser(IndexableDocument.CONTENT_FIELD, analyzer);
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.setLength(0);
-        stringBuilder.append(xmlDocument.getElementsByTagName("ES-title").item(0).getTextContent());
-        stringBuilder.append(" ");
-        stringBuilder.append(xmlDocument.getElementsByTagName("ES-desc").item(0).getTextContent());
         AnalisysPerformer analisysPerformer = new AnalisysPerformer(options);
-        String queryString = analisysPerformer.analyze(stringBuilder.toString());
+        String searchContent = analisysPerformer.analyze(xmlDocument.getElementsByTagName("ES-title").item(0).getTextContent() 
+                + " " + xmlDocument.getElementsByTagName("ES-desc").item(0).getTextContent());
+        stringBuilder.append(IndexableDocument.TITLE_FIELD);
+        stringBuilder.append(":\"");
+        stringBuilder.append(searchContent);
+        stringBuilder.append("\" OR ");
+        stringBuilder.append(IndexableDocument.CONTENT_FIELD);
+        stringBuilder.append(":\"");
+        stringBuilder.append(searchContent);
 
-        Query query = parser.parse(parser.escape(queryString));
+        Query query = parser.parse(parser.escape(stringBuilder.toString()));
         return query;
     }
 
